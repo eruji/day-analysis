@@ -30,7 +30,10 @@ export default async (req) => {
   try {
     if (req.method === 'GET') {
       if (!id) return json({ error: 'missing id' }, 400);
-      const rec = await store().get(id, { type: 'json' });
+      const raw = await store().get(id);
+      let rec = null;
+      if (typeof raw === 'string') { try { rec = JSON.parse(raw); } catch (e) { rec = null; } }
+      else if (raw && typeof raw === 'object') rec = raw;
       if (!rec || typeof rec.csv !== 'string') return json({ error: 'not found' }, 404);
       return json({ id, name: rec.name || 'shared.csv', csv: rec.csv, at: rec.at || 0 });
     }
@@ -43,12 +46,12 @@ export default async (req) => {
         return json({ error: 'missing or too-large csv (max ' + (MAX_CSV / 1048576) + ' MB)' }, 400);
       }
       const key = crypto.randomUUID().replace(/-/g, '').slice(0, 20);
-      await store().set(key, {
+      await store().set(key, JSON.stringify({
         v: 1,
         name: String(body.name || 'shared.csv').slice(0, MAX_NAME),
         csv,
         at: Date.now()
-      });
+      }));
       return json({ ok: true, id: key });
     }
 
