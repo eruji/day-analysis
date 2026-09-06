@@ -8,7 +8,7 @@
 
   let ds = null;            // { receipts, meta }
   let minD = '', maxD = '';
-  const state = { s: '', e: '', days: [true, true, true, true, true, true, true], bigOn: false, threshold: 200 };
+  const state = { s: '', e: '', days: [true, true, true, true, true, true, true], ch: '' };
   let symbol = '$';
 
   /* ---------------- existing operating hours (edit to match your schedule) ----------------
@@ -60,12 +60,18 @@
   }
   function pct(p) { return (Math.round(p * 10) / 10) + '%'; }
 
+  function chLabel(k) {
+    const f = (ds && ds.meta.chs || []).find(c => c.k === k);
+    return f ? f.label : k;
+  }
+
   /* ---------------- dataset loading ---------------- */
-  async function loadText(text, filename) {
+  async function loadText(text, filename, opts) {
     const csv = CSV.parse(text);
     const built = DA.buildDataset(csv);
     ds = built;
     symbol = ds.meta.symbol || '$';
+    let kept = false;
     if (ds.meta.fatal) {
       setStatus(ds.meta.fatal, 'err');
       $('filters').classList.add('hidden');
@@ -81,8 +87,11 @@
     maxD = receipts.length ? receipts[receipts.length - 1].ds.slice(0, 10) : '';
     state.s = minD; state.e = maxD;
     state.days = [true, true, true, true, true, true, true];
-    state.bigOn = false;
-    $('big').checked = false;
+    state.ch = '';
+    if (!(opts && opts.restored)) {
+      kept = tryPersist(text, filename || 'saved.csv');
+      if (kept) $('forget').classList.remove('hidden');
+    }
     buildControls();
     $('filters').classList.remove('hidden');
     $('kpis').classList.remove('hidden');
@@ -104,6 +113,7 @@
     if (m.aggregated) parts.push(m.aggregated + ' line items grouped by receipt');
     if (m.skippedUnparsed) parts.push(m.skippedUnparsed + ' rows unreadable');
     if (m.skippedNoAmount) parts.push(m.skippedNoAmount + ' rows without amount');
+    if (kept) parts.push('kept in this browser until you load another file');
     setStatus(parts.join(' · '), 'ok');
     if (m.note) {
       const n = $('note');
@@ -171,6 +181,15 @@
       c.onclick = () => { state.days[d] = !state.days[d]; c.classList.toggle('on'); render(); };
       chipEl.appendChild(c);
     }
+    const chSel = $('chSel');
+    chSel.innerHTML = '';
+    const chs = ds.meta.chs || [];
+    if (!chs.length) { chSel.classList.add('hidden'); return; }
+    chSel.classList.remove('hidden');
+    const opt = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
+    chSel.appendChild(opt('', 'All sales'));
+    for (const c of chs) chSel.appendChild(opt(c.k, c.label));
+    chSel.onchange = () => { state.ch = chSel.value; render(); };
   }
 
   /* ---------------- rendering ---------------- */
@@ -196,9 +215,9 @@
     $('kWk').textContent = m.tot ? money(wd) + ' · M–F  |  ' + money(wk) : '—';
 
     const note = $('note');
+    const chTag = state.ch ? ' · ' + chLabel(state.ch) + ' only' : '';
     note.innerHTML = 'Showing <b>' + esc(DA.fmtRange(state.s, state.e)) + '</b> · ' + m.n + ' receipts · ' +
-      money(m.tot) + ' net' + (m.daysUsed ? ' · ' + m.daysUsed + ' days with sales' : '') +
-      (state.bigOn ? ' · receipts ≥ ' + money(state.threshold, 0) + ' hidden' : '') +
+      money(m.tot) + ' net' + (m.daysUsed ? ' · ' + m.daysUsed + ' days with sales' : '') + chTag +
       '<br>Darker green = more revenue. Click any number to list those transactions.';
 
     const wrap = $('tableWrap');
@@ -208,6 +227,17 @@
     }
     let maxC = 0;
     for (let d = 0; d < 7; d++) for (let h = 0; h < 24; h++) if (m.rev[d][h] > maxC) maxC = m.rev[d][h];
+    // per-day bar scale: count vs the busiest visible day, colour = revenue share (heat style)
+    let maxCnt = 0, maxRev = 0;
+    for (let d = 0; d < 7; d++) {
+      if (!state.days[d]) continue;
+      if (m.dCnt[d] > maxCnt) maxCnt = m.dCnt[d];
+      if (m.dTot[d] > maxRev) maxRev = m.dTot[d];
+    }
+    const heatStyle = q => {
+      const c = Math.max(0, Math.min(1, q));
+      return 'background:rgb(' + Math.round(255 * (1 - c)) + ',255,' + Math.round(255 * (1 - c * 0.6)) + ')';
+    };
     let html = '<table><tr><th class="d">Day</th>';
     for (let h = 0; h < 24; h++) html += '<th class="h">' + DA.hourLabel(h) + '<br><span>' + money(m.hTot[h]) + '</span></th>';
     html += '</tr>';
@@ -223,7 +253,12 @@
         if (inOpen.has(h + 1)) c += ' noR';   // not the right edge of the band
         return c;
       };
-      html += '<tr><th class="d">' + DA.DAYS[d] + '<br><span>' + money(m.dTot[d]) + ' · ' + m.dCnt[d] + 'x</span></th>';
+      // day header: name, thin horizontal bar (count share, digits at the end), then the $
+      const cntPct = (maxCnt && m.dCnt[d]) ? Math.max(4, Math.round(100 * m.dCnt[d] / maxCnt)) : 0;
+      html += '<tr><th class="d"><span class="dn">' + DA.DAYS[d] + '</span>' +
+        '<span class="db"><span class="trk"><i style="width:' + cntPct + '%;' + heatStyle(maxRev ? m.dTot[d] / maxRev : 0) + '"></i></span>' +
+        '<b>' + m.dCnt[d] + '</b></span>' +
+        '<span class="dm">' + money(m.dTot[d]) + '</span></th>';
       for (let h = 0; h < 24; h++) {
         const a = m.rev[d][h], c = m.cnt[d][h];
         const ocl = ohCls(h);
@@ -277,12 +312,14 @@
     const rows = DA.filterReceipts(ds.receipts, state);
     const m = DA.compute(rows);
     const hdr = ['Day'].concat(Array.from({ length: 24 }, (_, h) => DA.hourLabel(h))).concat(['Day Total', 'Day # Sales']);
+    const flt = ['Filters', 'days=' + DA.DAYS.filter((_, i) => state.days[i]).join('+')];
+    if (state.ch) flt.push('channel = ' + chLabel(state.ch));
+    flt.push('receipts=' + m.n, 'net=' + money(m.tot));
     const L = [
       ['Report', 'Sales by Day and Hour of Day (filtered view)'],
       ['Source', 'loaded CSV'],
       ['Reporting period', state.s + ' to ' + state.e, '(' + DA.fmtRange(state.s, state.e) + ')'],
-      ['Filters', 'days=' + DA.DAYS.filter((_, i) => state.days[i]).join('+'),
-        state.bigOn ? 'hide receipts >= ' + state.threshold : '', 'receipts=' + m.n, 'net=' + money(m.tot)],
+      flt,
       []
     ];
     const mat = [];
@@ -301,12 +338,40 @@
     URL.revokeObjectURL(a.href);
   }
 
+  /* ---------------- persistence (localStorage — data never leaves this browser) ---------------- */
+  const K_CSV = 'dayanalysis.csv.v1', K_NAME = 'dayanalysis.name.v1', K_AT = 'dayanalysis.at.v1';
+  function canStore() {
+    try { const k = '__da'; localStorage.setItem(k, '1'); localStorage.removeItem(k); return true; }
+    catch (e) { return false; }
+  }
+  function tryPersist(text, name) {
+    if (!canStore()) return false;
+    try {
+      localStorage.setItem(K_CSV, text);
+      localStorage.setItem(K_NAME, name);
+      localStorage.setItem(K_AT, String(Date.now()));
+      return true;
+    } catch (e) { return false; }   // quota exceeded etc — session still works
+  }
+  function forgetSaved() {
+    try { localStorage.removeItem(K_CSV); localStorage.removeItem(K_NAME); localStorage.removeItem(K_AT); } catch (e) {}
+    location.reload();
+  }
+  function bootRestore() {
+    if (!canStore()) return;
+    const name = localStorage.getItem(K_NAME);
+    const text = localStorage.getItem(K_CSV);
+    if (name && text) {
+      $('forget').classList.remove('hidden');
+      loadText(text, name + ' — restored from this browser', { restored: true }).catch(() => {});
+    }
+  }
+
   /* ---------------- wiring ---------------- */
   $('file').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
   $('sample').addEventListener('click', loadSample);
+  $('forget').addEventListener('click', forgetSaved);
   $('dl').addEventListener('click', download);
-  $('big').addEventListener('change', e => { state.bigOn = e.target.checked; render(); });
-  $('thr').addEventListener('change', e => { state.threshold = Math.max(1, +e.target.value || 200); render(); });
   const drop = $('drop'), file = $('file');
   drop.addEventListener('click', () => file.click());
   ['dragover', 'dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
@@ -319,4 +384,7 @@
   $('tableWrap').innerHTML =
     '<div class="prompt">Load a CSV (or click <b>Use sample data</b>) to see the day × hour revenue heatmap, ' +
     'peak hours, best days, and per-transaction drill-down.</div>';
+
+  // day bars live in the heatmap row headers — nothing chart-specific to redraw on resize
+  bootRestore();
 })();

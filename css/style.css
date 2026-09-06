@@ -23,9 +23,9 @@ button.primary{background:#00796b;color:#fff;border-color:#00796b}
 #dl{margin-left:auto;background:#e8f4f2;border-color:#00796b;color:#00695c;font-weight:600}
 .lbl{font-size:12px;color:#546e7a;font-weight:600;margin-right:2px}
 input[type=date]{font:inherit;font-size:12px;border:1px solid #c3ced4;border-radius:5px;padding:3px 6px}
-input[type=number]{font:inherit;font-size:12px;border:1px solid #c3ced4;border-radius:5px;padding:3px 4px}
-.chk{display:flex;align-items:center;gap:4px;font-size:12px;color:#37474f;margin-left:10px}
-.chk input[type=checkbox]{accent-color:#00796b}
+select{font:inherit;font-size:12px;border:1px solid #c3ced4;border-radius:5px;padding:3px 6px;background:#fff;color:#37474f}
+#forget{color:#8a97a0;border-color:#d5dde1;background:#fff;font-size:11px}
+#forget:hover{border-color:#b71c1c;color:#b71c1c}
 #status{margin-top:8px;font-size:12px;line-height:1.5}
 #status.err{color:#b71c1c}
 #status.ok{color:#1b5e20}
@@ -40,8 +40,14 @@ input[type=number]{font:inherit;font-size:12px;border:1px solid #c3ced4;border-r
 /* heatmap */
 table{border-collapse:collapse;background:#fff;border:1px solid #dfe5e8;border-radius:6px}
 th,td{border:1px solid #e4eaed;font-size:11px}
-th.d{width:118px;text-align:left;padding:6px;background:#f4f6f7}
-th.d span{font-weight:400;color:#607d8b}
+th.d{width:160px;text-align:left;padding:6px;background:#f4f6f7}
+/* day header cell: name + thin count bar + $ total */
+th.d .dn{display:block;font-weight:600;font-size:12px;color:#37474f}
+th.d .db{display:flex;align-items:center;gap:4px;margin:3px 0 2px}
+th.d .trk{flex:1;min-width:10px;height:7px;background:#e4eaed;border-radius:4px;overflow:hidden}
+th.d .trk i{display:block;height:100%;border-radius:4px}
+th.d .db b{font-weight:600;font-size:10px;color:#00695c;line-height:1;white-space:nowrap}
+th.d .dm{display:block;font-weight:600;color:#455a64;white-space:nowrap}
 th.h{font-size:10px;padding:4px 2px;background:#f4f6f7;font-weight:600;white-space:nowrap}
 th.h span{display:block;font-weight:400;color:#00796b;margin-top:2px}
 td{text-align:center;padding:6px 3px;width:56px}

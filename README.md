@@ -5,8 +5,11 @@ A client-side, single-page analyzer that turns a sales export CSV into a **day-o
 - **No server, no build step, no dependencies** — pure HTML/CSS/JS, works from `file://` and on any static host (Netlify, GitHub Pages, S3…).
 - Your CSV is parsed **entirely in your browser** — nothing is uploaded anywhere.
 - Click any heatmap cell to drill into the individual transactions (date & time, receipt #, staff, items).
-- Filter by **date range** (presets + pickers), **day of week**, and hide large orders (≥ $200) to separate walk-in traffic from big-ticket sales.
+- Filter by **date range** (presets + pickers) and **day of week** to focus on any period.
 - **Existing-hours overlay** — an orange band outlines the hours you're currently open on the grid, so quiet open hours and sales that happen outside the box jump out instantly.
+- **Per-day count bars** — each day's header in the heatmap carries a thin horizontal bar scaled to its receipt count (colored like the heatmap by revenue share) with the **count digits at the end** and the day's **$** total beneath — no `· 13x` clutter, no separate chart.
+- **Keeps your data between visits** — the last CSV is stored in this browser's localStorage and auto-restored on reload, until you load a new file. A **✕ forget saved copy** button clears it. Still nothing is ever uploaded anywhere.
+- **Online vs retail split** — if the export has a channel-ish column (`Register`, `Channel`, `Sale Type`, `Source`, `Platform`, `Store`…), a *Channel* dropdown filters heatmap, bar chart, drill-down and CSV export to **All / Online / Retail** — or any unrecognized values you have.
 
 ## Marking your current hours
 
@@ -29,6 +32,7 @@ The analyzer auto-detects columns by header name (case/space-insensitive). Minim
 | Receipt/order id *(optional)* | `Receipt Number`, `Order`, `Invoice`, `Transaction ID` |
 | User *(optional)* | `User`, `Employee`, `Staff`, `Cashier` |
 | Item details *(optional)* | `Details`, `Description`, `Items`, `Product` |
+| Channel *(optional)* | `Channel`, `Register`, `Sale Type`, `Source`, `Platform`, `Store`, `Location`, `Order Type` | Values containing online/web/ecom/delivery/shipped… map to **Online**; register/retail/store/walk-in/pickup/dine-in… map to **Retail** (e.g. Lightspeed's `Online register` vs `Main Register`). Unrecognized values are listed on their own in the dropdown. |
 
 Supported timestamps: `2026-09-05 15:37:11` and `9/5/2026 3:37 PM` (both 12h and 24h). Amounts may include `$ € £`, commas, or parentheses for negatives.
 
@@ -71,6 +75,7 @@ js/csv.js         RFC4180 CSV parser (pure)
 js/core.js        schema detection, parsing, day×hour math, formatters (pure)
 js/app.js         DOM wiring, loading, rendering, drill-down, CSV export
 data/sample.csv   sample Lightspeed export
-test/test.js      node test suite
+test/test.js      node test suite (pure core logic)
+test/smoke.js     headless-Chrome UI smoke test (serves the page, loads sample, checks heatmap + per-day count bars)
 netlify.toml      Netlify config (static, no build)
 ```

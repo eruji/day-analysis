@@ -23,6 +23,7 @@
         <span class="hint">Sales export with a date/time column and an amount column (see README)</span>
       </label>
       <button id="sample" title="Load the bundled example export">Use sample data</button>
+      <button id="forget" class="hidden" title="Delete the copy saved in this browser — the data is otherwise never uploaded anywhere">✕ forget saved copy</button>
     </div>
     <div id="status" class="hidden"></div>
   </section>
@@ -34,7 +35,7 @@
       <span class="lbl">From</span><input type="date" id="startD">
       <span class="lbl">to</span><input type="date" id="endD">
       <span class="lbl" style="margin-left:14px">Days</span><span id="chips"></span>
-      <label class="chk"><input type="checkbox" id="big">hide receipts ≥ <input type="number" id="thr" value="200" min="1" step="1" style="width:56px"> </label>
+      <span class="lbl" style="margin-left:14px">Channel</span><select id="chSel" class="hidden"></select>
       <button id="dl" title="Download the currently filtered matrix as CSV">⬇ CSV</button>
     </div>
   </section>

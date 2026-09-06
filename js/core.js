@@ -44,6 +44,17 @@
 
   const norm = h => String(h).toLowerCase().trim().replace(/[^a-z0-9]/g, '');
 
+  /* ---------------- channel classification (online vs retail / in-store) ---------------- */
+
+  // Buckets a channel-ish value. Returns 'online', 'retail', '' (blank) or null (unrecognised).
+  function channelOf(raw) {
+    const v = String(raw || '').trim().toLowerCase();
+    if (!v) return '';
+    if (/online|e-?com|web|internet|deliver|shipp|digital|download|door|curb|takeout|app/.test(v)) return 'online';
+    if (/retail|register|walk|pos|counter|pickup|dine|physical|onsite|in.?store|loyalty|wholesale|cash/.test(v)) return 'retail';
+    return null;
+  }
+
   /* ---------------- schema detection ---------------- */
 
   function detectSchema(headers) {
@@ -58,6 +69,8 @@
       receipt: pick(['receiptnumber', 'receipt', 'ordernumber', 'order', 'transactionid', 'invoice', 'transaction', 'id']),
       user: pick(['user', 'employee', 'staff', 'cashier', 'seller', 'username']),
       details: pick(['details', 'description', 'item', 'items', 'product', 'name', 'sku', 'itemname']),
+      channel: pick(['channel', 'salechannel', 'saleschannel', 'saletype', 'ordertype', 'orderchannel', 'sourcetype',
+        'source', 'platform', 'register', 'location', 'store', 'site', 'webstore', 'ecom', 'soldvia']),
       headers: headers.slice()
     };
     return schema;
@@ -147,6 +160,14 @@
     }
 
     const receipts = [];
+    const chOrder = [];                    // discovery order of channel keys
+    const chCounts = new Map();
+    const chLabels = { online: 'Online', retail: 'Retail' };
+    const chKeyOf = raw => {
+      const c = schema.channel >= 0 ? channelOf(raw) : '';
+      if (c === null) { const v = String(raw).trim(); return v ? 'raw:' + v : ''; }
+      return c;
+    };
     for (const r of transactions) {
       const dt = parseDT(r[schema.date]);
       if (!dt) { meta.skippedUnparsed++; continue; }
@@ -154,6 +175,12 @@
       if (amt === null) { meta.skippedNoAmount++; continue; }
       if (dt.getHours() !== 0 || dt.getMinutes() !== 0) meta.hadTime = true;
       else meta.noTime = true;
+      const chKey = chKeyOf(schema.channel >= 0 ? r[schema.channel] : '');
+      chCounts.set(chKey, (chCounts.get(chKey) || 0) + 1);
+      if (chKey && !chLabels[chKey]) {
+        chLabels[chKey] = String(r[schema.channel]).trim().slice(0, 40);
+        chOrder.push(chKey);
+      }
       receipts.push({
         date: dt,
         ds: pad(dt.getFullYear()) + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()) + ' ' +
@@ -163,12 +190,19 @@
         amt: amt,
         receipt: schema.receipt >= 0 ? String(r[schema.receipt]).trim() : '',
         user: schema.user >= 0 ? String(r[schema.user]).trim() : '',
-        details: schema.details >= 0 ? String(r[schema.details]).trim() : ''
+        details: schema.details >= 0 ? String(r[schema.details]).trim() : '',
+        channel: chKey
       });
     }
     receipts.sort((a, b) => a.date - b.date);
     meta.nReceipts = receipts.length;
     meta.total = receipts.reduce((s, r) => s + r.amt, 0);
+    meta.chCol = schema.channel >= 0 ? csv.headers[schema.channel] : '';
+    meta.chs = [];
+    const pushCh = k => { if (chCounts.get(k)) meta.chs.push({ k, label: chLabels[k] }); };
+    pushCh('online');
+    pushCh('retail');
+    for (const k of chOrder) if (k !== 'online' && k !== 'retail') pushCh(k);
     if (meta.noTime && !meta.hadTime) meta.note += 'No clock times in the timestamps — everything lands at 12 AM. ';
     return { receipts, meta };
   }
@@ -177,14 +211,14 @@
 
   /* ---------------- view model: filtering + aggregation ---------------- */
 
-  // state: { s:'YYYY-MM-DD', e:'YYYY-MM-DD', days:bool[7], threshold:number, bigOn:bool }
+  // state: { s:'YYYY-MM-DD', e:'YYYY-MM-DD', days:bool[7], ch?:'online'|'retail'|'raw:…' }
   function filterReceipts(receipts, st) {
     const out = [];
     for (const r of receipts) {
       const d = r.ds.slice(0, 10);
       if (d < st.s || d > st.e) continue;
       if (!st.days[r.dow]) continue;
-      if (st.bigOn && r.amt >= st.threshold) continue;
+      if (st.ch && r.channel !== st.ch) continue;
       out.push(r);
     }
     return out;
@@ -232,7 +266,7 @@
   }
 
   const api = {
-    DAYS, MN, parseDT, parseAmount, detectSchema, buildDataset,
+    DAYS, MN, parseDT, parseAmount, channelOf, detectSchema, buildDataset,
     filterReceipts, compute, hourLabel, fmtRange, fmtDT, pad
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
