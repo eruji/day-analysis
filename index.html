@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sales by Day &amp; Hour — CSV analyzer</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Sales by Day of Week × Hour of Day</h1>
+    <div class="period">Load a sales CSV below — the heatmap shows when revenue actually happens, so you can set operating hours from data.</div>
+  </header>
+
+  <!-- load zone -->
+  <section class="controls" id="loadZone">
+    <div class="row">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".csv,text/csv" hidden>
+        <b>Drop a CSV here</b> or <span class="fakebtn">browse files</span>
+        <span class="hint">Sales export with a date/time column and an amount column (see README)</span>
+      </label>
+      <button id="sample" title="Load the bundled example export">Use sample data</button>
+    </div>
+    <div id="status" class="hidden"></div>
+  </section>
+
+  <!-- filters -->
+  <section class="controls hidden" id="filters">
+    <div class="row" id="presets"></div>
+    <div class="row">
+      <span class="lbl">From</span><input type="date" id="startD">
+      <span class="lbl">to</span><input type="date" id="endD">
+      <span class="lbl" style="margin-left:14px">Days</span><span id="chips"></span>
+      <label class="chk"><input type="checkbox" id="big">hide receipts ≥ <input type="number" id="thr" value="200" min="1" step="1" style="width:56px"> </label>
+      <button id="dl" title="Download the currently filtered matrix as CSV">⬇ CSV</button>
+    </div>
+  </section>
+
+  <!-- kpis -->
+  <section class="kpi hidden" id="kpis">
+    <div><b id="kRev">—</b><span>net revenue</span></div>
+    <div><b id="kN">—</b><span>receipts</span></div>
+    <div><b id="kDay">—</b><span id="kDaySub">best day</span></div>
+    <div><b id="kHour">—</b><span id="kHourSub">best hour</span></div>
+    <div><b id="kWk">—</b><span>M–F vs Sat–Sun</span></div>
+  </section>
+
+  <h2 class="hidden" id="hmTitle">Revenue heatmap — rows = day, columns = hour</h2>
+  <p class="note hidden" id="note"></p>
+  <div id="tableWrap"></div>
+  <div class="det hidden" id="detWrap"></div>
+
+  <div class="foot">Client-side only — your CSV never leaves this browser · totals net of returns · VOIDED / SAVED rows excluded automatically.</div>
+</div>
+
+<script src="js/csv.js"></script>
+<script src="js/core.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

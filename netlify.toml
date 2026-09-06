@@ -1,0 +1,5 @@
+# Static site — no build step. Publish the repo root.
+[build]
+  publish = "."
+
+# No functions or build commands needed; everything runs client-side.
