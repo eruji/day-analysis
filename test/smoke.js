@@ -72,6 +72,8 @@ async function main() {
         dayAmount0: (dth && dth.querySelector('.dm')) ? dth.querySelector('.dm').textContent : '',
         barFill0: (dth && dth.querySelector('.trk i')) ? [dth.querySelector('.trk i').style.width, dth.querySelector('.trk i').style.background] : null,
         noXmarker: ![...document.querySelectorAll('#tableWrap th.d')].some(e => /\d+x/.test(e.textContent)),
+        shareShown: !document.getElementById('share').classList.contains('hidden'),
+        shareBoxHidden: document.getElementById('shareBox').classList.contains('hidden'),
         chOpts: [...document.getElementById('chSel').options].map(o => o.value + '=' + o.textContent),
         status: (document.getElementById('status').textContent || '').trim().slice(0, 120)
       };
@@ -123,6 +125,7 @@ async function main() {
       out.dayBars === 7 && out.dayNames.join(',') === 'Mon,Tue,Wed,Thu,Fri,Sat,Sun' &&
       out.dayCounts.join(',') === '17,10,16,13,15,56,21' && out.noXmarker &&
       /^\$/.test(out.dayAmount0) && out.barFill0 && out.barFill0[0].includes('%') &&
+      out.shareShown && out.shareBoxHidden &&
       out.chOpts.join('|') === '=All sales|online=Online|retail=Retail' &&
       ch.online.n === '4' && ch.allN === '148' &&
       rest.count === '148' && rest.forgetShown && rest.hasTable && rest.status.includes('restored') &&

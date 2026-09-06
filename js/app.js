@@ -10,6 +10,7 @@
   let minD = '', maxD = '';
   const state = { s: '', e: '', days: [true, true, true, true, true, true, true], ch: '' };
   let symbol = '$';
+  let lastCsvText = '', lastCsvName = '', myShareId = '';   // for the Share feature
 
   /* ---------------- existing operating hours (edit to match your schedule) ----------------
    * Key = day of week: 0=Mon … 6=Sun.  Omitted day = closed (no outline).
@@ -80,6 +81,9 @@
       $('note').classList.add('hidden');
       $('leg').classList.add('hidden');
       $('tableWrap').innerHTML = '';
+      $('share').classList.add('hidden');
+      $('shareBox').classList.add('hidden');
+      myShareId = '';
       return;
     }
     const receipts = ds.receipts;
@@ -92,6 +96,9 @@
       kept = tryPersist(text, filename || 'saved.csv');
       if (kept) $('forget').classList.remove('hidden');
     }
+    lastCsvText = text;
+    lastCsvName = filename || 'saved.csv';
+    $('share').classList.remove('hidden');
     buildControls();
     $('filters').classList.remove('hidden');
     $('kpis').classList.remove('hidden');
@@ -367,10 +374,76 @@
     }
   }
 
+  /* ---------------- sharing a dataset (needs the deployed Netlify function) ---------------- */
+  async function shareNow() {
+    if (!lastCsvText) return;
+    const btn = $('share');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/.netlify/functions/shared', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csv: lastCsvText, name: lastCsvName || 'shared.csv' })
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok || !j || !j.id) throw new Error((j && j.error) || 'HTTP ' + res.status);
+      myShareId = j.id;
+      $('shareUrl').value = location.origin + location.pathname + '?d=' + j.id;
+      $('shareBox').classList.remove('hidden');
+      const inp = $('shareUrl');
+      inp.focus(); inp.select();
+    } catch (e) {
+      setStatus('Sharing needs the deployed site (netlify function not reachable): ' + e.message, 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function copyUrl() {
+    const inp = $('shareUrl');
+    inp.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(inp.value).then(() => ok = true, () => {});
+    }
+    const b = $('copyUrl');
+    const old = b.textContent;
+    b.textContent = ok ? 'Copied ✓' : 'Select & copy manually';
+    setTimeout(() => { b.textContent = old; }, 1400);
+  }
+
+  async function stopShare() {
+    const id = myShareId;
+    myShareId = '';
+    $('shareBox').classList.add('hidden');
+    if (id) {
+      try { await fetch('/.netlify/functions/shared?id=' + encodeURIComponent(id), { method: 'DELETE' }); } catch (e) {}
+      const u = new URL(location.href);
+      if (u.searchParams.get('d') === id) { u.searchParams.delete('d'); history.replaceState(null, '', u); }
+      setStatus('Shared copy deleted — the old link now shows “not found”.', 'ok');
+    }
+  }
+
+  async function loadShared(id) {
+    try {
+      const res = await fetch('/.netlify/functions/shared?id=' + encodeURIComponent(id));
+      const j = await res.json().catch(() => null);
+      if (!res.ok || !j || typeof j.csv !== 'string') throw new Error((j && j.error) || 'HTTP ' + res.status);
+      await loadText(j.csv, (j.name || 'shared.csv') + ' — shared link', { remote: true });
+      myShareId = id;
+    } catch (e) {
+      setStatus('Could not load the shared dataset: ' + e.message, 'err');
+    }
+  }
+
   /* ---------------- wiring ---------------- */
   $('file').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
   $('sample').addEventListener('click', loadSample);
   $('forget').addEventListener('click', forgetSaved);
+  $('share').addEventListener('click', shareNow);
+  $('copyUrl').addEventListener('click', copyUrl);
+  $('stopShare').addEventListener('click', stopShare);
   $('dl').addEventListener('click', download);
   const drop = $('drop'), file = $('file');
   drop.addEventListener('click', () => file.click());
@@ -386,5 +459,10 @@
     'peak hours, best days, and per-transaction drill-down.</div>';
 
   // day bars live in the heatmap row headers — nothing chart-specific to redraw on resize
-  bootRestore();
+  function boot() {
+    const d = new URLSearchParams(location.search).get('d');
+    if (d) loadShared(d);
+    else bootRestore();
+  }
+  boot();
 })();

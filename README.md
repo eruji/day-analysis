@@ -3,12 +3,12 @@
 A client-side, single-page analyzer that turns a sales export CSV into a **day-of-week × hour-of-day revenue heatmap** so you can decide operating hours from actual data.
 
 - **No server, no build step, no dependencies** — pure HTML/CSS/JS, works from `file://` and on any static host (Netlify, GitHub Pages, S3…).
-- Your CSV is parsed **entirely in your browser** — nothing is uploaded anywhere.
+- Your CSV is parsed **entirely in your browser** — nothing is uploaded anywhere **unless you click *Share***.
 - Click any heatmap cell to drill into the individual transactions (date & time, receipt #, staff, items).
 - Filter by **date range** (presets + pickers) and **day of week** to focus on any period.
 - **Existing-hours overlay** — an orange band outlines the hours you're currently open on the grid, so quiet open hours and sales that happen outside the box jump out instantly.
 - **Per-day count bars** — each day's header in the heatmap carries a thin horizontal bar scaled to its receipt count (colored like the heatmap by revenue share) with the **count digits at the end** and the day's **$** total beneath — no `· 13x` clutter, no separate chart.
-- **Keeps your data between visits** — the last CSV is stored in this browser's localStorage and auto-restored on reload, until you load a new file. A **✕ forget saved copy** button clears it. Still nothing is ever uploaded anywhere.
+- **Share a dataset for others** — a *Share* button (after any load) stores the CSV in a Netlify Blob store via a serverless function and gives you a link anyone can open (`?d=<id>`); *stop sharing* deletes it. Ids are random and unguessable, so only people holding the link can read the data back. (On the static-only local server this button reports that it needs the deployed site.)
 - **Online vs retail split** — if the export has a channel-ish column (`Register`, `Channel`, `Sale Type`, `Source`, `Platform`, `Store`…), a *Channel* dropdown filters heatmap, bar chart, drill-down and CSV export to **All / Online / Retail** — or any unrecognized values you have.
 
 ## Marking your current hours
@@ -48,15 +48,20 @@ The status line under the load box always tells you exactly what was excluded an
 ## Run locally
 
 ```bash
-python -m http.server 8000        # then open http://localhost:8000
-# or just open index.html in a browser and drag a CSV in
+python -m http.server 8000        # static UI only (Share is disabled)
+# full local experience incl. the sharing function:
+netlify dev                      # serves the site + /.netlify/functions/shared
 ```
 
 ## Deploy to Netlify
 
 **Option A — drag & drop (fastest):** go to [app.netlify.com/drop](https://app.netlify.com/drop) and drop this folder in. No config needed.
 
-**Option B — from git:** push this repo to GitHub/GitLab, then in Netlify: *Add new site → Import an existing project*. Netlify auto-detects `netlify.toml` (publish root = repo root, no build command).
+**Option B — from git:** push this repo to GitHub/GitLab, then in Netlify: *Add new site → Import an existing project*. Netlify auto-detects `netlify.toml` (publish root = repo root; build command `npm install`, which supplies `@netlify/blobs` for `functions/shared.js`).
+
+## Sharing datasets
+
+`functions/shared.js` (a Netlify Function backed by Netlify Blobs) implements `GET/POST/DELETE /.netlify/functions/shared`. Clicking **Share** after a load POSTs the current CSV and shows a link of the form `https://<site>/?d=<id>`; opening that link in any browser loads the dataset. Deleting (stop sharing) removes the blob, so the link 404s. Nothing is shared automatically — only what you explicitly Share.
 
 ## Tests
 
@@ -77,5 +82,7 @@ js/app.js         DOM wiring, loading, rendering, drill-down, CSV export
 data/sample.csv   sample Lightspeed export
 test/test.js      node test suite (pure core logic)
 test/smoke.js     headless-Chrome UI smoke test (serves the page, loads sample, checks heatmap + per-day count bars)
+functions/shared.js  Netlify Function: store/fetch/delete shared datasets (Netlify Blobs)
+package.json      pins @netlify/blobs for the function
 netlify.toml      Netlify config (static, no build)
 ```

@@ -26,6 +26,10 @@ input[type=date]{font:inherit;font-size:12px;border:1px solid #c3ced4;border-rad
 select{font:inherit;font-size:12px;border:1px solid #c3ced4;border-radius:5px;padding:3px 6px;background:#fff;color:#37474f}
 #forget{color:#8a97a0;border-color:#d5dde1;background:#fff;font-size:11px}
 #forget:hover{border-color:#b71c1c;color:#b71c1c}
+#share{color:#00695c;border-color:#00796b;background:#fff;font-weight:600}
+#share:disabled{opacity:.5;cursor:default}
+#shareBox .row .hint{flex-basis:100%;margin-top:4px}
+#shareUrl{font:11px Consolas,monospace;flex:1;min-width:180px;max-width:480px;border:1px solid #c3ced4;border-radius:5px;padding:4px 6px;background:#fbfdfd;color:#1b5e20}
 #status{margin-top:8px;font-size:12px;line-height:1.5}
 #status.err{color:#b71c1c}
 #status.ok{color:#1b5e20}

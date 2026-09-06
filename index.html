@@ -24,8 +24,19 @@
       </label>
       <button id="sample" title="Load the bundled example export">Use sample data</button>
       <button id="forget" class="hidden" title="Delete the copy saved in this browser — the data is otherwise never uploaded anywhere">✕ forget saved copy</button>
+      <button id="share" class="hidden" title="Create a link other people can open to view this dataset">🔗 Share</button>
     </div>
     <div id="status" class="hidden"></div>
+  </section>
+
+  <section class="controls hidden" id="shareBox">
+    <div class="row">
+      <span class="lbl">Shared link</span>
+      <input type="text" id="shareUrl" readonly>
+      <button id="copyUrl">Copy</button>
+      <button id="stopShare" title="Delete the shared copy — the link will stop working">stop sharing</button>
+      <span class="hint">Anyone with this link can open this dataset. It is stored on Netlify (not just in your browser) until you stop sharing — treat it like posting a link publicly.</span>
+    </div>
   </section>
 
   <!-- filters -->
@@ -56,7 +67,7 @@
   <div id="tableWrap"></div>
   <div class="det hidden" id="detWrap"></div>
 
-  <div class="foot">Client-side only — your CSV never leaves this browser · totals net of returns · VOIDED / SAVED rows excluded automatically.</div>
+  <div class="foot">Analyzed entirely in your browser — uploads stay on your device unless you click <b>Share</b> · totals net of returns · VOIDED / SAVED rows excluded automatically.</div>
 </div>
 
 <script src="js/csv.js"></script>

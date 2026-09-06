@@ -1,0 +1,8 @@
+{
+  "name": "day-analysis",
+  "private": true,
+  "description": "Sales by Day & Hour CSV analyzer (static front-end + optional shared-dataset function)",
+  "dependencies": {
+    "@netlify/blobs": "^11.0.3"
+  }
+}
