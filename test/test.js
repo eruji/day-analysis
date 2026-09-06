@@ -4,8 +4,8 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const CSV = require('../js/csv.js');
-const DA = require('../js/core.js');
+const CSV = require('../public/js/csv.js');
+const DA = require('../public/js/core.js');
 
 let fails = 0;
 function t(name, cond, extra) {
@@ -13,7 +13,7 @@ function t(name, cond, extra) {
   else { fails++; console.log('FAIL | ' + name + (extra !== undefined ? '  -> got: ' + JSON.stringify(extra) : '')); }
 }
 
-const text = fs.readFileSync(path.join(__dirname, '..', 'data', 'sample.csv'), 'utf8');
+const text = fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'sample.csv'), 'utf8');
 const csv = CSV.parse(text);
 t('parses headers + 864 data rows', csv.headers.length === 22 && csv.rows.length === 864, [csv.headers.length, csv.rows.length]);
 t('header cells clean', csv.headers[0] === 'Date' && csv.headers[21] === 'Attributes');

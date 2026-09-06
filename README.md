@@ -48,16 +48,16 @@ The status line under the load box always tells you exactly what was excluded an
 ## Run locally
 
 ```bash
-python -m http.server 8000        # static UI only (Share is disabled)
+cd public && python -m http.server 8000   # static UI only (Share is disabled)
 # full local experience incl. the sharing function:
-netlify dev                      # serves the site + /.netlify/functions/shared
+netlify dev                              # serves public/ + /.netlify/functions/shared
 ```
 
 ## Deploy to Netlify
 
 **Option A — drag & drop (fastest):** go to [app.netlify.com/drop](https://app.netlify.com/drop) and drop this folder in. No config needed.
 
-**Option B — from git:** push this repo to GitHub/GitLab, then in Netlify: *Add new site → Import an existing project*. Netlify auto-detects `netlify.toml` (publish root = repo root; build command `npm install`, which supplies `@netlify/blobs` for `functions/shared.js`).
+**Option B — from git:** push this repo to GitHub/GitLab, then in Netlify: *Add new site → Import an existing project*. Netlify auto-detects `netlify.toml` (publish root = `public/`; build command `npm install`, which supplies `@netlify/blobs` for `functions/shared.js`).
 
 ## Sharing datasets
 
@@ -74,15 +74,14 @@ Validates the parser + analysis core against the bundled sample (expects 148 rec
 ## Project layout
 
 ```
-index.html        UI shell
-css/style.css     styling
-js/csv.js         RFC4180 CSV parser (pure)
-js/core.js        schema detection, parsing, day×hour math, formatters (pure)
-js/app.js         DOM wiring, loading, rendering, drill-down, CSV export
-data/sample.csv   sample Lightspeed export
-test/test.js      node test suite (pure core logic)
-test/smoke.js     headless-Chrome UI smoke test (serves the page, loads sample, checks heatmap + per-day count bars)
-functions/shared.js  Netlify Function: store/fetch/delete shared datasets (Netlify Blobs)
-package.json      pins @netlify/blobs for the function
-netlify.toml      Netlify config (static, no build)
+public/               the static app (index.html, css/, js/, data/sample.csv)
+css/style.css         styling
+js/csv.js             RFC4180 CSV parser (pure)
+js/core.js            schema detection, parsing, day×hour math, formatters (pure)
+js/app.js             DOM wiring, loading, rendering, drill-down, CSV export
+functions/shared.js   Netlify Function: store/fetch/delete shared datasets (Netlify Blobs)
+package.json          pins @netlify/blobs for the function
+test/test.js          node test suite (pure core logic)
+test/smoke.js         headless-Chrome UI smoke test (serves the page, loads sample, checks heatmap + per-day count bars)
+netlify.toml          Netlify config (publish public/, functions/, build = npm install)
 ```

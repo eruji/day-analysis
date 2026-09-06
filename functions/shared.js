@@ -61,6 +61,6 @@ export default async (req) => {
     return json({ error: 'method not allowed' }, 405);
   } catch (e) {
     console.error('shared fn error:', e);
-    return json({ error: 'server error' }, 500);
+    return json({ error: 'server error', detail: String((e && e.message) || e) }, 500);
   }
 };

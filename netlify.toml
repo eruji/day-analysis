@@ -1,6 +1,6 @@
-# Publish the repo root. npm install supplies @netlify/blobs for functions/shared.js
+# Publish the static app in public/. npm install supplies @netlify/blobs for functions/shared.js
 [build]
-  publish = "."
+  publish = "public"
   command = "npm install"
 
 [functions]
