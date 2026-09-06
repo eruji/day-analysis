@@ -50,6 +50,16 @@ td.v{font-weight:600;color:#123}
 td.neg{background:#fdecea;color:#b71c1c}
 td.c{cursor:pointer}
 td.c:hover{outline:2px solid #00796b;outline-offset:-2px}
+
+/* operating-hours band (see OPEN config at top of js/app.js) */
+td.oh{box-shadow:inset 2px 0 0 0 #fb8c00,inset -2px 0 0 0 #fb8c00,inset 0 2px 0 0 #fb8c00,inset 0 -2px 0 0 #fb8c00}
+td.oh.noL{box-shadow:inset -2px 0 0 0 #fb8c00,inset 0 2px 0 0 #fb8c00,inset 0 -2px 0 0 #fb8c00}
+td.oh.noR{box-shadow:inset 2px 0 0 0 #fb8c00,inset 0 2px 0 0 #fb8c00,inset 0 -2px 0 0 #fb8c00}
+td.oh.noL.noR{box-shadow:inset 0 2px 0 0 #fb8c00,inset 0 -2px 0 0 #fb8c00}
+
+/* legend */
+p.leg{color:#6d4a00;background:#fff6e5;border:1px solid #ffe0b2;border-radius:6px;padding:6px 10px;margin:8px 0 14px}
+.ohk{display:inline-block;width:8px;height:8px;border:2px solid #fb8c00;border-radius:2px;margin-right:7px;vertical-align:-1px}
 p.note{font-size:11px;color:#546e7a;margin:8px 0}
 .empty,.prompt{color:#78909c;text-align:center;padding:40px 18px;font-size:14px;background:#fff;
   border:1px dashed #c3ced4;border-radius:8px}

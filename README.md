@@ -6,6 +6,11 @@ A client-side, single-page analyzer that turns a sales export CSV into a **day-o
 - Your CSV is parsed **entirely in your browser** — nothing is uploaded anywhere.
 - Click any heatmap cell to drill into the individual transactions (date & time, receipt #, staff, items).
 - Filter by **date range** (presets + pickers), **day of week**, and hide large orders (≥ $200) to separate walk-in traffic from big-ticket sales.
+- **Existing-hours overlay** — an orange band outlines the hours you're currently open on the grid, so quiet open hours and sales that happen outside the box jump out instantly.
+
+## Marking your current hours
+
+By default the overlay outlines **Mon–Fri 10 AM–5 PM, Sat 9 AM–5 PM, Sun 9 AM–2 PM**. Edit the `OPEN` config at the top of `js/app.js` to match your real schedule: weekday keys `0=Mon … 6=Sun`, each value a half-open `[open, close)` hour span. Because a sale lands in the column of its clock hour, a 5 PM close outlines the **10 AM–4 PM** columns — a sale at 5:00 PM or later happened after close. Multi-span days use nested arrays (`[[9,12],[14,17]]`); omit a weekday (or use `[]`) to mark it closed. The legend line above the table is generated automatically from the config.
 
 ## Try it
 

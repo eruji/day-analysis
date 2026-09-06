@@ -11,6 +11,44 @@
   const state = { s: '', e: '', days: [true, true, true, true, true, true, true], bigOn: false, threshold: 200 };
   let symbol = '$';
 
+  /* ---------------- existing operating hours (edit to match your schedule) ----------------
+   * Key = day of week: 0=Mon … 6=Sun.  Omitted day = closed (no outline).
+   * Each value is a half-open hour span [open, close): a sale's clock hour must be >= open
+   * and < close, so "10 AM–5 PM" outlines the 10 AM…4 PM columns — a 5:00 PM sale
+   * lands after close.  Multi-span days look like [[9,12],[14,17]].
+   */
+  const OPEN = {
+    0: [10, 17], 1: [10, 17], 2: [10, 17], 3: [10, 17], 4: [10, 17],  // Mon–Fri
+    5: [9, 17],                                                        // Sat
+    6: [9, 14]                                                         // Sun
+  };
+
+  function spansOf(d) {
+    const v = OPEN[d];
+    if (!v) return [];
+    return typeof v[0] === 'number' ? [v] : v;
+  }
+  function spanKey(sp) { return sp.map(s => s[0] + '-' + s[1]).join('|'); }
+
+  // human legend, auto-derived from OPEN, e.g. "Mon–Fri 10 AM–5 PM · Sat 9 AM–5 PM"
+  function openLegend() {
+    const runs = [];
+    let start = 0;
+    for (let d = 1; d <= 7; d++) {
+      if (d < 7 && spanKey(spansOf(start)) === spanKey(spansOf(d))) continue;
+      runs.push([start, d - 1]);
+      start = d;
+    }
+    return runs
+      .filter(([a]) => spansOf(a).length)
+      .map(([a, b]) => {
+        const who = a === b ? DA.DAYS[a] : DA.DAYS[a] + '–' + DA.DAYS[b];
+        const hrs = spansOf(a).map(s => DA.hourLabel(s[0]) + '–' + DA.hourLabel(s[1])).join(', ');
+        return who + ' ' + hrs;
+      })
+      .join(' · ');
+  }
+
   /* ---------------- formatters ---------------- */
   function money(x, dec) {
     const d = dec === 0 ? 0 : 2;
@@ -34,6 +72,7 @@
       $('kpis').classList.add('hidden');
       $('hmTitle').classList.add('hidden');
       $('note').classList.add('hidden');
+      $('leg').classList.add('hidden');
       $('tableWrap').innerHTML = '';
       return;
     }
@@ -49,6 +88,9 @@
     $('kpis').classList.remove('hidden');
     $('hmTitle').classList.remove('hidden');
     $('note').classList.remove('hidden');
+    const leg = $('leg');
+    leg.innerHTML = '<span class="ohk"></span>Outline = current hours: ' + openLegend();
+    leg.classList.remove('hidden');
     closeDet();
     render();
     const m = ds.meta;
@@ -171,15 +213,26 @@
     html += '</tr>';
     for (let d = 0; d < 7; d++) {
       if (!state.days[d]) continue;
+      // which hour columns are inside the current operating hours for this day
+      const inOpen = new Set();
+      for (const sp of spansOf(d)) for (let h = sp[0]; h < sp[1]; h++) inOpen.add(h);
+      const ohCls = h => {
+        if (!inOpen.has(h)) return '';
+        let c = ' oh';
+        if (inOpen.has(h - 1)) c += ' noL';   // not the left edge of the band
+        if (inOpen.has(h + 1)) c += ' noR';   // not the right edge of the band
+        return c;
+      };
       html += '<tr><th class="d">' + DA.DAYS[d] + '<br><span>' + money(m.dTot[d]) + ' · ' + m.dCnt[d] + 'x</span></th>';
       for (let h = 0; h < 24; h++) {
         const a = m.rev[d][h], c = m.cnt[d][h];
+        const ocl = ohCls(h);
         const tt = DA.DAYS[d] + ' ' + DA.hourLabel(h) + ' — ' + money(a) + ' / ' + c + ' receipt' + (c === 1 ? '' : 's');
-        if (!a && !c) { html += '<td class="z" title="no sales"></td>'; continue; }
-        if (a < 0) { html += '<td class="neg c" title="' + tt + '" onclick="openCell(' + d + ',' + h + ')">' + money(a) + '</td>'; continue; }
+        if (!a && !c) { html += '<td class="z' + ocl + '" title="no sales"></td>'; continue; }
+        if (a < 0) { html += '<td class="neg c' + ocl + '" title="' + tt + '" onclick="openCell(' + d + ',' + h + ')">' + money(a) + '</td>'; continue; }
         const ratio = Math.max(0, a / maxC);
         const r = Math.round(255 * (1 - ratio)), g = 255, b = Math.round(255 * (1 - ratio * 0.6));
-        html += '<td class="v c" style="background:rgb(' + r + ',' + g + ',' + b + ')" title="' + tt +
+        html += '<td class="v c' + ocl + '" style="background:rgb(' + r + ',' + g + ',' + b + ')" title="' + tt +
           '" onclick="openCell(' + d + ',' + h + ')">' + money(a) + '</td>';
       }
       html += '</tr>';
